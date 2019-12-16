@@ -37,7 +37,7 @@ transformation steps. So instead, you can link up multiple tasks together to for
 data freely within the graph.
 
 Here a visualisation of a transformation graph that has three tasks:
-[](./images/tasks.png)
+![](./images/tasks.png)
 
 The flow starts when we read a file and ends when we write to a file. By having multiple tasks instead of one big task
 everything, we can start modularise our data flow. For example, if we want to fetch data from an URL we only need to 
