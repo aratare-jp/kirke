@@ -213,7 +213,7 @@ To define a task you first need an ID:
 }
 ```
 
-Each task must be given a unique ID which can be referred to by other tasks. This is simply denoted with `:id` key with
+Each task must be given a unique ID which can be referred to by other tasks. This is denoted with `:id` key with
 a value of any string.
 
 You will then need to define its `:type` to declare what type of task this is as well as what kind of input, operation 
@@ -338,7 +338,7 @@ I'm not going to bore you to death with `:output`, because it has the exact same
 
 A task with an empty `:output` is a ***consumer*** task, whose data is consumed within the operation of the task. This
 means that linking any tasks to a consumer task will cause those task to _never_ be executed since no data will ever
-be output form a consumer task.
+be output from a consumer task.
 
 #### Push and pull
 There is an important difference between `:input`'s `:locations` and `:output`'s `:locations`: `:input` pulls data
@@ -371,7 +371,7 @@ Triggers come in different flavours, but the most commonly used ones are:
 - Validator
 
 You saw it right: Logger is a trigger _and_ a task. Which brings us to the next point:
-> Triggers is simply tasks on steroid!
+> Triggers are tasks on steroid!
 
 The "steroid" part comes from the fact that triggers can receive payload from any other tasks.
 
@@ -385,7 +385,7 @@ For example, logger is an **_async_** trigger because it should not block the ta
 it can be configured to), whereas validator is an **_sync_** trigger because execution should not be continued if the 
 data is invalid (though it can be configured to).
 
-To make use of triggers you simply attach a trigger to either `:input` or `:output` of a task:
+To make use of triggers you attach a trigger to either `:input` or `:output` of a task:
 
 ```clojure
 {
@@ -418,10 +418,13 @@ To make use of triggers you simply attach a trigger to either `:input` or `:outp
           :predicate :contains
 
           ;; The value to be validated against. Type coercion is used here between different types. For explicit 
-          ;; conversion, simply use a vector with the desired type. So this...
+          ;; conversion, use a vector with the desired type. So this...
           :value "meme"
-          ;; is the same as...
-          [:value "name" :as "String"]
+          ;; can be written as...
+          :value {
+            :data "meme"
+            :type "String"
+          }
         }
       }
     ]
