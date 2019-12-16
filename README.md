@@ -40,8 +40,8 @@ Here a visualisation of a transformation graph that has three tasks:
 ![](./images/tasks.png)
 
 The flow starts when we read a file and ends when we write to a file. By having multiple tasks instead of one big task
-everything, we can start modularise our data flow. For example, if we want to fetch data from an URL we only need to 
-create a producer to do the fetching, and then link it up with our Task 2.
+to handle everything, we can start modularise our data flow. For example, if we want to fetch data from an URL we only 
+need to create a producer to do the fetching, and then link it up with our Task 2.
 
 > You may wonder why `Read meme` and `Read meme file` are not the same (one is an operation one is an input). You can
 > check out further details in [Input](#input) and [Operations](#operation) sections. But TL;DR: Input treats 
