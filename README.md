@@ -97,7 +97,7 @@ Once operation is performed, the output data is then sent to a data store or oth
 
 Triggers can also be attached to the output once transformation is completed.
 
-Operation is denoted with the `:output` keyword whose value is another map with the following keys:
+Output is denoted with the `:output` keyword whose value is another map with the following keys:
 
 | Key | Value | Default value | Description |
 | ---- | ---- | ---- | ---- |
@@ -105,15 +105,10 @@ Operation is denoted with the `:output` keyword whose value is another map with 
 | `:triggers` | String or keyword vector | String vector | Indicates what triggers to apply upon receiving input. Can either be built-in trigger or trigger ID (prefixed with `id:`) |
 
 ### Trigger
+TBC
 
 ### Anatomy
-A task at its simplest form is a Clojure map with the following keys:
-
-| Key | Value | Default value | Description |
-| ---- | ---- | ---- | ---- |
-| `:type` | String | String | Indicates what type of task it is |
-| `:input` | Depends on task type | Depends on task type | Indicates the input this task receives. |
-| `:validators` | String or keyword vector | String vector | Indicates what validators to apply on the input |
+TBC
 
 ### Conversion
 This task reads data, does conversion, and then output the converted data. What type of conversion varies depending on
