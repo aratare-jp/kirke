@@ -71,7 +71,7 @@ Input is denoted with the `:input` keyword whose value is another map with the f
 
 | Key | Value | Default value | Description |
 | ---- | ---- | ---- | ---- |
-| `:source` | String | String | Can either be a URL to a file, a web endpoint, a database or a task ID (prefixed with `id:`) |
+| `:sources` | String or keyword vector | String vector | Can either be URLs to a file, a web endpoint, a database or a task ID (prefixed with `{graph-id}:`) |
 | `:triggers` | String or keyword vector | String vector | Indicates what triggers to apply upon receiving input. Can either be built-in trigger or trigger ID (prefixed with `id:`) |
 
 ### Operation
@@ -89,7 +89,7 @@ Operation is denoted with the `:operation` keyword whose value is another map wi
 
 | Key | Value | Default value | Description |
 | ---- | ---- | ---- | ---- |
-| `:type` | String | String | Indicates the type of the operation or an operation ID (prefixed with `id:`) |
+| `:type` | String | String | Indicates the type of the operation or an operation ID (prefixed with `{graph-id}:`) |
 | `:params` | String or keyword vector | String vector | Configuration applicable to the task itself. |
 
 ### Output
@@ -101,14 +101,50 @@ Output is denoted with the `:output` keyword whose value is another map with the
 
 | Key | Value | Default value | Description |
 | ---- | ---- | ---- | ---- |
-| `:source` | String | String | Can either be a URL to a file, a web endpoint, a database or a task ID (prefixed with `id:`) |
+| `:targets` | String or keyword vector | String vector | Can either be URLs to a file, a web endpoint, a database or a task ID (prefixed with `{graph-id}:`) |
 | `:triggers` | String or keyword vector | String vector | Indicates what triggers to apply upon receiving input. Can either be built-in trigger or trigger ID (prefixed with `id:`) |
 
 ### Trigger
-TBC
+Trigger allows intra- and inter-graph communication that is not possible with just task linking. Conceptually trigger is
+an event that is broadcasted once a condition is met. In practice it is a way to logically link between different tasks
+without explicitly saying so.
 
-### Anatomy
-TBC
+An event is sent that will be consumed by trigger, even a producer or a consumer! (For more info check out 
+[Producer](#producer) and [Consumer](#consumer) sections).
+
+A event is map with the following keys:
+
+| Key | Value | Default value | Description |
+| ---- | ---- | ---- | ---- |
+| `:source` | String | String | ID of the task that sent the event (prefixed with `{graph-id}:` |
+| `:payload` | Any | String | Whatever data to send to the trigger |
+
+Triggers are mostly used for tasks that are not tightly coupled with the data flow and whose concern is spanned across
+multiple graphs, such as logging or validating. It is called 
+[Aspect-oriented programming](https://en.wikipedia.org/wiki/Aspect-oriented_programming) in OO world.
+
+Triggers come in different flavours, but the most commonly used ones are:
+- Logger
+- Validator
+
+You saw it right: Logger is a trigger _and_ a task. Which brings us to the next point:
+> Trigger is simply a task that can also handle spontaneous execution.
+
+Whereas task takes its input from other tasks or producers, trigger takes input from events, even the ones from other
+graphs!
+
+There are two types of trigger: synchronous and asynchronous.
+- **_Synchronous_**: Upon firing an event, the firing task will _wait_ until the trigger has finished executing before 
+resuming its execution.
+- **_Asynchronous_**: Upon firing an event, the firing task will _not_ wait for the trigger to finish executing and will
+continue its execution.
+
+For example, logger is an **_async_** trigger because it should not block the task from executing its operation (though 
+it can be configured to), whereas validator is an **_sync_** trigger because execution should not be continued if the 
+data is invalid (though it can be configured to).
+
+## Built-ins
+Here is a list of all of the commonly used and built-in tasks and triggers that Kirke provides out-of-the-box.
 
 ### Conversion
 This task reads data, does conversion, and then output the converted data. What type of conversion varies depending on
