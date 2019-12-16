@@ -37,19 +37,19 @@ transformation steps. So instead, you can link up multiple tasks together to for
 data freely within the graph.
 
 Here a visualisation of a transformation graph that has three tasks:
-![](./images/tasks.png)
+[](./images/tasks.png)
 
 The flow starts when we read a file and ends when we write to a file. By having multiple tasks instead of one big task
 everything, we can start modularise our data flow. For example, if we want to fetch data from an URL we only need to 
 create a producer to do the fetching, and then link it up with our Task 2.
 
 > You may wonder why `Read meme` and `Read meme file` are not the same (one is an operation one is an input). You can
-> check out further details in ![Input](#input) and ![Operations](#operation) sections. But TL;DR: Input treats 
+> check out further details in [Input](#input) and [Operations](#operation) sections. But TL;DR: Input treats 
 > everything that it receives as pure data whereas a file is only a data store (not the data itself). Hence you need an 
 > operation to "unbox" the data store and retrieve the data within it.
 
 There are currently multiple built-in tasks that provide most common functionality, however you can also create your own
-task which can give you more freedom over how you want to process your data. Check out ![Custom tasks]() for more info.
+task which can give you more freedom over how you want to process your data. Check out [Custom tasks]() for more info.
 
 Each task must be given a unique ID which can be referred to by other tasks. This is simply denoted with `:id` key with
 a value of any string.
@@ -59,12 +59,12 @@ A task can receive input from zero or multiple data sources. Some of the most co
 servers, or even other tasks. 
 
 Input receives data _only_, which is different from other frameworks that may treat input as both data and data stores.
-Kirke only allows raw data to be received by input, whereas ![operations](#operation) can be used to process the data
+Kirke only allows raw data to be received by input, whereas [operations](#operation) can be used to process the data
 store itself. Operations are also used to data generation as "generation" does not mean the data but rather the act of 
 generating itself. The rationale behind this decision is so that we can keep input as "pure" as possible and that input
 should ever be concerned about the data itself.
 
-Input can also be attached with ![triggers](#trigger) which can perform various things upon receiving input data. One of
+Input can also be attached with [triggers](#trigger) which can perform various things upon receiving input data. One of
 which is the well-known and much-needed data validation.
 
 Input is denoted with the `:input` keyword whose value is another map with the following keys:
