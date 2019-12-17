@@ -409,7 +409,7 @@ To make use of triggers you attach a trigger to either `:input` or `:output` of 
       ;; However, there are time when you need to trigger with a custom payload, e.g. validation predicates:
       {
         :trigger "validator"
-        :type :sync
+        :async? false
         :payload {
           ;; The field name that we want to validate against, in this case it is the meme's name
           :param "name"
