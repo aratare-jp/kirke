@@ -435,11 +435,7 @@ To make use of triggers you attach a trigger to either `:input` or `:output` of 
 ```
 
 ## Built-ins
-Here is a list of all of the commonly used and built-in tasks and triggers that Kirke provides out-of-the-box.
-
-### Conversion
-This task reads data, does conversion, and then output the converted data. What type of conversion varies depending on
-what type of input it receives and what possible conversion can be done to the input data.
+TBC
 
 ## License
 
