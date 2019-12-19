@@ -1,5 +1,4 @@
-> Currently not complete!
-
+<!-- omit in toc -->
 # Kirke
 
 > A great enchantress famous for Her knowledge of herbs, magical spells and dark enchantments. She is especially
@@ -11,12 +10,21 @@ Kirke is a data transformation tool that allows multiplex transformation on mult
 In simpler terms:
 > It takes data from multiple sources, does things to it, then places it somewhere else.
 
-The transformation takes place during the "does thing to it" phase, which can comprise of many tasks such as:
-- Conversion
-- Aggregation
-- Separation
-- Etc.
+<!-- omit in toc -->
+## Table of Contents
+- [A little taste...](#a-little-taste)
+- [But why?](#but-why)
+- [Configuring Kirke](#configuring-kirke)
+- [Pipelines](#pipelines)
+- [Tasks](#tasks)
+  - [Input](#input)
+  - [Operation](#operation)
+  - [Output](#output)
+- [Trigger](#trigger)
+- [Built-ins](#built-ins)
+- [License](#license)
 
+## A little taste...
 Kirke can be run with an EDN file which consists of task configurations such as task topology, retry strategy,
 connection credentials, etc. For example:
 
@@ -81,7 +89,7 @@ connection credentials, etc. For example:
 ]
 ```
 
-## Rationale
+## But why?
 Let's say that we have a simple linear pipeline that takes input and produces output. Such pipeline is great because 
 with the same input we can expect the same output (assuming no side-effects). So stick this pipeline into a database and 
 now you can suddenly start transforming data as it is read from the database!
@@ -98,26 +106,33 @@ the input so that it can handle multiple sources. Let's not even talk about diff
 As this drags on and more data sources and more _types_ of data sources are added, you're stuck with having to modify 
 your pipeline.
 
-And this is where Kirke comes in. Treating a pipeline as a [Directed Acyclic Graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
-allows us to start building up a task system that is both modular, testable, and performant.
+And this is where Kirke comes in. It treats a pipeline as a 
+[Directed Acyclic Graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) in which tasks are vertices and 
+dependencies between them are edges. This turns a pipeline into a topology graph which can afford us a task system that 
+is both modular, testable, and performant.
+
+- ***Modularity***: By treating each task as its own separate module, we can plug the same task into different places 
+  within our pipeline.
+- ***Testable***: Treating everything as modules allows us to test our tasks in an isolated environment in which we can 
+  control the input and triggers.
+- ***Performant***: Each task is a functional unit of work, which means "same input -> same output". This allows us to
+  parallelise most if not the entire pipeline.
 
 Using the same example above, our new pipeline now contains multiple tasks including a reader tasks, a task to perform 
-your custom logic, and a writer task. It also allows us to maximise our modularity. It doesn't matter wherever your data 
-comes from, be it a JSON file, or a database, or a web endpoint, all that matters is that your reader task outputs the
-same data format, hence the same logic can be applied regardless of whatever data sources you use.
+your custom logic, and a writer task. It also allows us to maximise our modularity. It doesn't matter wherever your 
+data comes from, be it a JSON file, or a database, or a web endpoint, all that matters is that your reader task outputs 
+the same data format, hence the same logic can be applied regardless of whatever data sources you use.
 
 With a small pipeline the difference can be ignored. But Kirke is scalable so you can use Kirke across multiple data
 sources with multiple pipelines while still be able to utilise the same tasks or triggers from different places.
 
-## Configuration file
+## Configuring Kirke
 By default, Kirke reads an EDN file called `kirke.edn` upon start-up. The file contains various things such as:
-- Graphs
+- Pipelines
 - Tasks
 - Triggers
 
-These are then combined and configured so Kirke can start building up the task tree in memory.
-
-`kirke.edn` consists of an array of graphs, each of which contains its own tasks and the dependencies between them.
+`kirke.edn` consists of a list of pipelines, each of which contains its own tasks and the dependencies between them.
 
 At its simplest form, `kirke.edn` contains:
 ```clojure
@@ -135,11 +150,11 @@ At its simplest form, `kirke.edn` contains:
 ]
 ```
 
-By itself `kirke.edn` does not contain any specific details. We first need to define [graphs](#graphs).
+By itself `kirke.edn` does not contain any specific details. We first need to define pipelines.
 
-## Graphs
-A graph contains multiple tasks (nodes) and dependencies between them (edges). It represents the task topology as 
-configured in `kirke.edn`.
+## Pipelines
+A pipeline contains multiple tasks (nodes) and dependencies between them (edges). It represents the task topology as 
+configured in `kirke.edn` for the specific pipeline.
 
 To define a graph, all you need is an ID!
 
@@ -183,16 +198,18 @@ transformation steps. So instead, you can link up multiple tasks together to for
 data freely within the graph.
 
 Here a visualisation of a transformation graph that has three tasks:
+
 ![](./images/tasks.png)
 
 The flow starts when we read a file and ends when we write to a file. By having multiple tasks instead of one big task
 to handle everything, we can start modularise our data flow. For example, if we want to fetch data from an URL we only 
 need to create a producer to do the fetching, and then link it up with our Task 2.
 
-> You may wonder why `Read meme` and `Read meme file` are not the same (one is an operation one is an input). You can
-> check out further details in [Input](#input) and [Operation](#operation) sections. But TL;DR: Input treats 
-> everything that it receives as pure data whereas a file is only a data store (not the data itself). Hence you need an 
-> operation to "unbox" the data store and retrieve the data within it.
+> You may wonder why `Read meme` and `Read meme file` are not the same (one is an operation the other one is an input). 
+> You can check out further details in [Input](#input) and [Operation](#operation) sections. 
+> 
+> ***TL;DR***: Input treats everything that it receives as pure data whereas a file is only a data store (not the data 
+> itself). Hence you need an operation to "unbox" the data store and retrieve the data within it.
 
 There are currently multiple built-in tasks that provide most common functionality, however you can also create your own
 task which can give you more freedom over how you want to process your data.
@@ -340,19 +357,19 @@ A task with an empty `:output` is a ***consumer*** task, whose data is consumed 
 means that linking any tasks to a consumer task will cause those task to _never_ be executed since no data will ever
 be output from a consumer task.
 
-#### Push and pull
-There is an important difference between `:input`'s `:locations` and `:output`'s `:locations`: `:input` pulls data
-whereas `:output` pushes data.
-
-When given `:locations` that contain other tasks, `:input` will actively pull data periodically (a.k.a polling) from its
-data sources. Sometimes this is desired, but most of the time it means wasted CPU time due to unnecessary polling. Other
-`:locations` type is not polled unless watcher is turned on.
-
-`:output`, on the other hand, will actively push data whenever there is new data. By actively pushing when needed, the
-CPU is not wasting time polling, and hence is the preferred choice of moving data between tasks.
-
-If both `:input`'s `:locations` and `:output`'s `:locations` are given, _both_ pushing and polling will take place, so
-make sure you have configured your tasks correctly.
+> #### Push and pull
+> There is an important difference between `:input`'s `:locations` and `:output`'s `:locations`:
+> 
+> `:input` pulls data whereas `:output` pushes data.
+> When given `:locations` that contain other tasks, `:input` will actively pull data periodically (a.k.a polling) from its
+> data sources. Sometimes this is desired, but most of the time it means wasted CPU time due to unnecessary polling. Other
+> `:locations` type is not polled unless watcher is turned on.
+> 
+> `:output`, on the other hand, will actively push data whenever there is new data. By actively pushing when needed, the
+> CPU is not wasting time polling, and hence is the preferred choice of moving data between tasks.
+> 
+> If both `:input`'s `:locations` and `:output`'s `:locations` are given, _both_ pushing and polling will take place, so
+> make sure you have configured your tasks correctly.
 
 ## Trigger
 Here's the fun part! Trigger allows intra- and inter-graph communication that is not possible with just task linking.
