@@ -1,4 +1,5 @@
 (ns kirke.core
+  (:require [kirke.configurer :as cfg])
   (:gen-class))
 
 (defn -main
