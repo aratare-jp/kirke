@@ -6,7 +6,6 @@
 (defrecord Input
   [locations triggers])
 
-
 (defrecord Task
   [id input operation output])
 (spec/def ::task

@@ -1,6 +1,8 @@
 (ns kirke.spec.common
   (:require [clojure.spec.alpha :as spec]))
 
+(spec/def ::string? string?)
+(spec/def ::map? map?)
 (spec/def ::id string?)
 (spec/def ::has-id (spec/keys :req-un [::id]))
 (spec/def ::url string?)
@@ -11,4 +13,4 @@
 (spec/def ::async? boolean?)
 (spec/def ::input (spec/keys :req-un [::locations]))
 (spec/def ::output ::input)
-(spec/def ::operation map?)
+(spec/def ::operation (spec/or ::string? ::map?))
