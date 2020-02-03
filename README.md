@@ -1,6 +1,8 @@
 <!-- omit in toc -->
 # Kirke
 
+[![CircleCI](https://circleci.com/gh/aratare-tech/kirke/tree/develop.svg?style=svg)](https://circleci.com/gh/aratare-tech/kirke/tree/develop)
+
 > A great enchantress famous for Her knowledge of herbs, magical spells and dark enchantments. She is especially
 > known for spells of transformation: She changed the beautiful nymph Skylla into a sea-monster because She was jealous 
 > of Her; Picus, who refused Her love, She turned into a woodpecker; and any mortal visitors to Her island were 
