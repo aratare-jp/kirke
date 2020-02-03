@@ -1,0 +1,58 @@
+[
+ ;; Top level graph
+ {
+  :id    "e7179a98-d5b1-451f-86c0-883856832ee3"
+  :tasks [
+          ;; Here we read in a file
+          {
+           :id     "8f661bde-40ae-4389-a9dc-6f3d590b79d"
+           :type   "reader"
+           :input  {
+                    :sources [
+                              "file://meme.json"
+                              {
+                               :url      "jdbc:mysql://localhost:3306/meme"
+                               :username "meme@meme.com"
+                               :password "defnotmeme"
+                               }
+                              ]
+                    }
+           :output {
+                    ;; "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"
+                    }
+           }
+
+          ;; Some middle task to do some replacement
+          {
+           :id        "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"
+           ;; Indicate this task is custom. Can be left out.
+           ;; :type "custom"
+           :input     {
+                       :sources [
+                                 "8f661bde-40ae-4389-a9dc-6f3d590b79d1"
+                                 ]
+                       }
+           :operation "(clojure.string/replace (nth ins 1) #\"meme\" \"doge\")"
+           :output    {
+                       ;; "bd41f059-c450-46a5-91a6-c0923dcf01c8"
+                       }
+           }
+
+          ;; Here we have a writer task to write into a file
+          {
+           :id     "bd41f059-c450-46a5-91a6-c0923dcf01c8"
+           :type   "writer"
+           :input  {
+                    :sources [
+                              "8f661bde-40ae-4389-a9dc-6f3d590b79d1"
+                              ]
+                    }
+           :output {
+                    :targets [
+                              "file://doge.json"
+                              ]
+                    }
+           }
+          ]
+  }
+ ]
