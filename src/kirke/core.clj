@@ -1,7 +1,8 @@
 (ns kirke.core
   (:require [kirke.executor :as ex]
             [clojure.tools.cli :as cli :refer [parse-opts]]
-            [taoensso.timbre :as timbre :refer :all])
+            [taoensso.timbre :as timbre]
+            [clojure.edn :as edn])
   (:gen-class))
 
 (def cli-options
@@ -23,5 +24,5 @@
         (System/exit -1))
       :else
       (try
-        (ex/start (slurp (:config options)))
+        (ex/start (edn/read-string (slurp (:config options))))
         (catch Exception e (timbre/error (.getMessage e)))))))

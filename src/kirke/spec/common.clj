@@ -14,3 +14,8 @@
 (spec/def ::input (spec/keys :req-un [::locations]))
 (spec/def ::output ::input)
 (spec/def ::operation (spec/or ::string? ::map?))
+(spec/def ::type #(contains? #{"reader" "writer" "custom"} %))
+(spec/def ::task (spec/keys :req-un [::has-id] :opt-un [::type ::input ::operation ::output]))
+(spec/def ::tasks (spec/every ::task :kind vector?))
+(spec/def ::pipeline (spec/keys :req-un [::has-id] :opt-un [::tasks]))
+(spec/def ::pipelines (spec/every ::pipeline :kind vector?))
