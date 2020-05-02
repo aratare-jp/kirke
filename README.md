@@ -8,16 +8,16 @@
 > of Her; Picus, who refused Her love, She turned into a woodpecker; and any mortal visitors to Her island were 
 > transformed into wild beasts.
 
-Kirke is a data transformation tool that allows multiplex transformation on multiple data sources.
 In simpler terms:
-> It takes data from multiple sources, does things to it, then places it somewhere else.
+
+> Kirke is a data transformation tool that allows multiplex transformation on multiple data sources. It takes data from multiple sources, does things to it, then places it somewhere else.
 
 <!-- omit in toc -->
 ## Table of Contents
-- [A little taste...](#a-little-taste)
-- [But why?](#but-why)
+- [Getting Started (TBC)](#getting-started-tbc)
+- [Rationale](#rationale)
 - [Configuring Kirke](#configuring-kirke)
-- [Pipelines](#pipelines)
+- [Graph](#graph)
 - [Tasks](#tasks)
   - [Input](#input)
   - [Operation](#operation)
@@ -26,7 +26,7 @@ In simpler terms:
 - [Built-ins](#built-ins)
 - [License](#license)
 
-## A little taste...
+## Getting Started (TBC)
 Kirke can be run with an EDN file which consists of task configurations such as task topology, retry strategy,
 connection credentials, etc. For example:
 
@@ -51,35 +51,23 @@ connection credentials, etc. For example:
             ]
           }
           :output {
-            ;; "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"
+            "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"
           }
         }
 
         ;; Some middle task to do some replacement
         {
-          :id "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"
-          ;; Indicate this task is custom. Can be left out.
-          ;; :type "custom"
-          :input {
-            :sources [
-              "8f661bde-40ae-4389-a9dc-6f3d590b79d1"
-            ]
-          }
+          :id "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"          
           :operation "(clojure.string/replace (nth ins 1) #\"meme\" \"doge\")"
           :output {
-            ;; "bd41f059-c450-46a5-91a6-c0923dcf01c8"
+            "bd41f059-c450-46a5-91a6-c0923dcf01c8"
           }
         }
 
-        ;; Here we have a writer task to write into a file
+        ;; Here we write into a file
         {
           :id "bd41f059-c450-46a5-91a6-c0923dcf01c8"
           :type "writer"
-          :input {
-            :sources [
-              "8f661bde-40ae-4389-a9dc-6f3d590b79d1"
-            ]
-          }
           :output {
             :targets [
               "file://doge.json"
@@ -91,50 +79,37 @@ connection credentials, etc. For example:
 ]
 ```
 
-## But why?
-Let's say that we have a simple linear pipeline that takes input and produces output. Such pipeline is great because 
-with the same input we can expect the same output (assuming no side-effects). So stick this pipeline into a database and 
-now you can suddenly start transforming data as it is read from the database!
+## Rationale
+Conventional data is often moved around between different data sources. An example of which is when one migrates from one database schema to another one like, say, adding a new column. Another example would be when migrating from a legacy database to a newer one.
 
-Everything is swell... until you have another database.
+Often one would realise that migration is usually accompanied with transformation. For example, moving date data from one source to another source can often require date formatting. Or moving numberic data can often require conversion between integers and decimals.
 
-Now you want to apply the same pipeline to the new database, you need to copy-paste the pipeline over and stick it
-to the new database. While this method works, it is _not_ scalable because you may not want to do copy-paste the pipeline
-with 100 or 10,000 databases. To spice it up, what if it's not a database, but a JSON file? To crank it up even 
-further, what happens if you want to read data from both sources, perform some logic to it and then produce the 
-output? This is tricky because your pipeline can only accept one data source up until now, so you will need to modify
-the input so that it can handle multiple sources. Let's not even talk about different data formats.
+Regardless of what action is applied to the data, the entire process can be visualised as a pipeline with one end receiving input data (e.g. integers) and the other end outputting new data (e.g. decimals).
 
-As this drags on and more data sources and more _types_ of data sources are added, you're stuck with having to modify 
-your pipeline.
+Transformation process can be much simplified with pipelines since the same pipeline can be used across multiple places like, say, two different integer columns.
 
-And this is where Kirke comes in. It treats a pipeline as a 
-[Directed Acyclic Graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) in which tasks are vertices and 
-dependencies between them are edges. This turns a pipeline into a topology graph which can afford us a task system that 
-is both modular, testable, and performant.
+This transformation-as-pipelines idea is not new, with the correct technical term is **ETL - Extract, Tranform, Load**. However, treating transformation as pipelines does have its negative side. You may end up with multiple pipelines that are only "slightly" different like, say, different input data sources while the rest of the pipeline stays exactly the same.
 
-- ***Modularity***: By treating each task as its own separate module, we can plug the same task into different places 
-  within our pipeline.
-- ***Testable***: Treating everything as modules allows us to test our tasks in an isolated environment in which we can 
-  control the input and triggers.
-- ***Performant***: Each task is a functional unit of work, which means "same input -> same output". This allows us to
-  parallelise most if not the entire pipeline.
+And hence why Kirke was born. Instead of treating everything as pipelines, it treats everthing as a graph. Graph allows multiple inputs and multiple outputs, with multiple transformation in between. 
 
-Using the same example above, our new pipeline now contains multiple tasks including a reader tasks, a task to perform 
-your custom logic, and a writer task. It also allows us to maximise our modularity. It doesn't matter wherever your 
-data comes from, be it a JSON file, or a database, or a web endpoint, all that matters is that your reader task outputs 
-the same data format, hence the same logic can be applied regardless of whatever data sources you use.
+Compared to pipelines, graphs can offer:
+- **Multiplexing**
+- **Minimal duplication**
+- **Performance**
 
-With a small pipeline the difference can be ignored. But Kirke is scalable so you can use Kirke across multiple data
-sources with multiple pipelines while still be able to utilise the same tasks or triggers from different places.
+Graphs can offer multiplexing due to its dynamic nature. One can connect any nodes with any edge within a graph, sometimes without the need to create any node or edge. Just reuse what you have.
+
+By not required to create new nodes or edges, the same node or edge can be reused multiple times, and thus reducing duplication by doing so.
+
+Graph are by nature dynamic, and thus you can have multiple parts of the same graph run at the same time. Asynchronicity whenever possible and synchronicity whenever required. This, in addition to less duplication, can offer better performance compared to pipelines.
 
 ## Configuring Kirke
 By default, Kirke reads an EDN file called `kirke.edn` upon start-up. The file contains various things such as:
-- Pipelines
+- Graphs
 - Tasks
 - Triggers
 
-`kirke.edn` consists of a list of pipelines, each of which contains its own tasks and the dependencies between them.
+`kirke.edn` consists of a list of graphs, each of which contains its own tasks and the dependencies between them.
 
 At its simplest form, `kirke.edn` contains:
 ```clojure
@@ -152,13 +127,12 @@ At its simplest form, `kirke.edn` contains:
 ]
 ```
 
-By itself `kirke.edn` does not contain any specific details. We first need to define pipelines.
+By itself `kirke.edn` does not contain any specific details. We first need to define graphs.
 
-## Pipelines
-A pipeline contains multiple tasks (nodes) and dependencies between them (edges). It represents the task topology as 
-configured in `kirke.edn` for the specific pipeline.
+## Graph
+A graph contains multiple tasks (nodes) and dependencies between them (edges). It represents the task topology as configured in `kirke.edn` for the specific pipeline.
 
-To define a graph, all you need is an ID!
+To define a graph, all you need is an ID.
 
 ```clojure
 {
@@ -167,13 +141,13 @@ To define a graph, all you need is an ID!
 ```
 
 But a graph with no tasks is not really useful if you want to move data around. So you can start defining your own tasks
-by adding a `:tasks` keyword with an array of tasks like this:
+by adding a `:tasks` like this:
 
 ```clojure
 {
   :id "88f28e83-5f4e-4fd3-979f-061898ebc6bc"
   :tasks [
-    ;; Tasks here!!!
+    ;; Tasks here
   ]
 }
 ```
@@ -187,25 +161,21 @@ At the lowest level in Kirke are tasks. A task performs a single operation on an
 Input --> Operation --> Output
 ```
 
-But it gets even better! A task can also have zero or _multiple_ inputs, each of which can come from different data 
-sources, and zero or _multiple_ output, each can also be linked up to different places. 
+A task can also have zero or _multiple_ inputs, each of which can come from different data sources, and zero or _multiple_ output, each can also be linked up to different places. 
 
-A zero-input task is called a ***producer***, and an example of such task can be a data source that generates data on 
+A zero-input task is called a ***producer***, and an example of such task can be a data source that generates data on
 the fly.
 
 A zero-output task is called a ***consumer***, and is typically used for IO-related tasks such as file writer.
 
-By itself a task is not as useful, if not sometimes unwieldy as it grows overtime and has to perform a lot of
-transformation steps. So instead, you can link up multiple tasks together to form a transformation graph that can move
+By itself a task is not as useful, if not sometimes unwieldy as it grows overtime and has to perform a lot of transformation steps. So instead, you can link up multiple tasks together to form a transformation graph that can move
 data freely within the graph.
 
 Here a visualisation of a transformation graph that has three tasks:
 
 ![](./images/tasks.png)
 
-The flow starts when we read a file and ends when we write to a file. By having multiple tasks instead of one big task
-to handle everything, we can start modularise our data flow. For example, if we want to fetch data from an URL we only 
-need to create a producer to do the fetching, and then link it up with our Task 2.
+The flow starts when we read a file and ends when we write to a file. By having multiple tasks instead of one big task to handle everything, we can start modularise our data flow. For example, if we want to fetch data from an URL we only need to create a producer to do the fetching, and then link it up with our Task 2.
 
 > You may wonder why `Read meme` and `Read meme file` are not the same (one is an operation the other one is an input). 
 > You can check out further details in [Input](#input) and [Operation](#operation) sections. 
@@ -213,7 +183,7 @@ need to create a producer to do the fetching, and then link it up with our Task 
 > ***TL;DR***: Input treats everything that it receives as pure data whereas a file is only a data store (not the data 
 > itself). Hence you need an operation to "unbox" the data store and retrieve the data within it.
 
-There are currently multiple built-in tasks that provide most common functionality, however you can also create your own
+There are multiple built-in tasks that provide most common functionality, however you can also create your own
 task which can give you more freedom over how you want to process your data.
 
 Some of the most commonly used tasks are:
@@ -222,7 +192,7 @@ Some of the most commonly used tasks are:
 - `reader`
 - `writer`
 
-To define a task you first need an ID:
+To define or use a task you first need an ID:
 
 ```clojure
 {
@@ -232,17 +202,15 @@ To define a task you first need an ID:
 }
 ```
 
-Each task must be given a unique ID which can be referred to by other tasks. This is denoted with `:id` key with
-a value of any string.
+Each task must be given a unique ID which can be referred to by other tasks. This is denoted with `:id` key with a value of any string.
 
-You will then need to define its `:type` to declare what type of task this is as well as what kind of input, operation 
-and output it uses.
+You will then need to define its `:type` to declare what type of task this is as well as what kind of input, operation and output it uses.
 
 ```clojure
 {
   :id "29d99332-9f9a-4681-9ad2-92b2e083e0ec"
 
-  ;; Can be "reader", "writer", "validator", etc.
+  ;; Can be "reader", "writer", etc.
   :type "reader"
 
   ;; ...
@@ -251,19 +219,15 @@ and output it uses.
 
 If omitted, it will default to `custom` type.
 
-But this is not enough, so let's begin defining our task!
+If using non-`custom` types, the type will dictate what input, operation and output this task will use. For example, `reader` type will not have input whereas `writer` type will not have output.
 
 ### Input
-A task can receive input from zero or multiple data sources. Some of the most common data sources are databases, files,
-servers, or even other tasks. 
+A task can receive input from zero or multiple data sources. Some of the most common data sources are databases, files, servers, or even other tasks' output.
 
-Input receives data _only_, which is different from other frameworks that may treat input as both data and data stores.
-Kirke only allows raw data to be received by input, whereas [operations](#operation) can be used to process the data
-store. Operations are also used to data generation as "generation" does not mean the data but rather the act of 
-generating. The rationale behind this decision is so that we can keep input as "pure" as possible and that input
+Input receives data **_only_**, which is different from other frameworks that may treat input as both data and data stores. Kirke only allows raw data to be received by input, whereas [operations](#operation) can be used to process the data store. Operations are also used to data generation as "generation" does not mean the data but rather the act of generating data. The rationale behind this decision is so that we can keep input as "pure" as possible and that input
 should ever be concerned about the data itself.
 
-By default, _all_ types of task can be given an `:input` to depict where the task can get the data.
+By default, tasks of _all_ types except `reader` can be given an `:input` to depict where the task can get the data.
 ```clojure
 {
   ;; ...
@@ -296,10 +260,9 @@ By default, _all_ types of task can be given an `:input` to depict where the tas
 }
 ```
 
-A task with an empty `:input` is a ***producer*** task, whose data is either generated or retrieved from somewhere else.
+A task with an empty `:input` is a **_producer_** task, whose data is either generated or retrieved from somewhere else, e.g. web endpoints.
 
-Input can also be attached with [triggers](#trigger) which can perform various things upon receiving input data. One of
-which is the well-known and much-needed data validation.
+Input can also be attached with [triggers](#trigger) which can perform various things upon receiving input data. One of which is the well-known and much-needed data validation.
 
 Now that we have the data, we need to perform some logic on it.
 
@@ -307,8 +270,7 @@ Now that we have the data, we need to perform some logic on it.
 Operation lays out what transformation to perform to the received input. Typically if you're using a builtin task type,
 `:operation` can be omitted. If present, it will override the default configuration of the task type.
 
-As mentioned previously, logic can also handle any processing of the data store itself. For example, fetching data
-from a web endpoint or reading from a file. This means operations can potentially introduce side-effects.
+As mentioned previously, operations can also handle any processing of data stores. For example, fetching data from a web endpoint or reading from a file. This means operations can potentially introduce side-effects. But as far as one is concerned, the task itself is "pure".
 
 To define a custom `:operation`, you need to provide a custom logic that will run on the input the task receives:
 
@@ -344,14 +306,10 @@ an array of maps with each element represents to data fetched from the data sour
 
 By default `:logic` will has type `:code`, and if provided a string it will treat that as the raw code value.
 
-Whew! Now that we're done with data transformation, we now need to ~~yeet~~ send this data to a data store (via `writer`
-task) or other tasks for more transformation.
-
 ### Output
 Once operation is performed, the output data is then sent to other tasks.
 
-I'm not going to bore you to death with `:output`, because it has the exact same syntax as `:input` (except with 
-`:output` as the key of course).
+I'm not going to bore you to death with `:output`, because it has the exact same syntax as `:input` (except with `:output` as the key of course).
 
 [Triggers](#trigger) can also be attached to the output once transformation is completed, same rules as `:input`.
 
@@ -386,8 +344,8 @@ multiple graphs or tasks, such as logging or validating. It is called
 [Aspect-oriented programming](https://en.wikipedia.org/wiki/Aspect-oriented_programming) in the Object-oriented world.
 
 Triggers come in different flavours, but the most commonly used ones are:
-- Logger
-- Validator
+- `logger`
+- `validator`
 
 You saw it right: Logger is a trigger _and_ a task. Which brings us to the next point:
 > Triggers are tasks on steroid!
@@ -437,7 +395,7 @@ To make use of triggers you attach a trigger to either `:input` or `:output` of 
           :predicate :contains
 
           ;; The value to be validated against. Type coercion is used here between different types. For explicit 
-          ;; conversion, use a vector with the desired type. So this...
+          ;; conversion, use a map with the desired type. So this...
           :value "meme"
           ;; can be written as...
           :value {
