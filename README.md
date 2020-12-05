@@ -3,19 +3,15 @@
 
 [![CircleCI](https://circleci.com/gh/aratare-tech/kirke/tree/develop.svg?style=svg)](https://circleci.com/gh/aratare-tech/kirke/tree/develop)
 
-> A great enchantress famous for Her knowledge of herbs, magical spells and dark enchantments. She is especially
-> known for spells of transformation: She changed the beautiful nymph Skylla into a sea-monster because She was jealous 
-> of Her; Picus, who refused Her love, She turned into a woodpecker; and any mortal visitors to Her island were 
-> transformed into wild beasts.
+> A great enchantress famous for Her knowledge of herbs, magical spells and dark enchantments. She is especially known for spells of transformation: She changed the beautiful nymph Skylla into a sea-monster because She was jealous of Her; Picus, who refused Her love, She turned into a woodpecker; and any mortal visitors to Her island were transformed into wild beasts.
 
-In simpler terms:
-
-> Kirke is a data transformation tool that allows multiplex transformation on multiple data sources. It takes data from multiple sources, does things to it, then places it somewhere else.
+Kirke is a neat tool that takes data from multiple sources, does things to it, then places it somewhere else.
 
 <!-- omit in toc -->
 ## Table of Contents
 - [Getting Started (TBC)](#getting-started-tbc)
 - [Rationale](#rationale)
+- [Goals](#goals)
 - [Configuring Kirke](#configuring-kirke)
 - [Graph](#graph)
 - [Tasks](#tasks)
@@ -27,52 +23,70 @@ In simpler terms:
 - [License](#license)
 
 ## Getting Started (TBC)
-Kirke can be run with an EDN file which consists of task configurations such as task topology, retry strategy,
-connection credentials, etc. For example:
-
 ```clojure
 [
     ;; Top level graph
     {
+      ;; Unique ID across the graph.
       :id "e7179a98-d5b1-451f-86c0-883856832ee3"
+
+      ;; Tasks within this graph.
       :tasks [
-        ;; Here we read in a file
+        ;; Here we read in a file, and select certain input from a database.
         {
           :id "8f661bde-40ae-4389-a9dc-6f3d590b79d"
           :type "reader"
-          :input {
-            :sources [
-              "file://meme.json"
+
+          ;; Where to read the input
+          :input [
+            ;; File
+            "file://meme.json"
+
+            ;; Database
+            {
+              ;; `next.jdbc`-conformed credentials
+              :db-creds 
               {
                 :url "jdbc:mysql://localhost:3306/meme"
                 :username "meme@meme.com"
                 :password "defnotmeme"
               }
-            ]
-          }
-          :output {
+              ;; What to fetch out of the database with HoneySQL-conformed query map.
+              :query
+              {
+                :select [:a :b :c]
+                :from   [:foo]
+                :where  [:= :f.a "baz"]
+              }
+            }
+          ]
+
+          ;; Where to output transformed data. In this case it's another task.
+          :output [
             "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"
-          }
+          ]
         }
 
         ;; Some middle task to do some replacement
         {
-          :id "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"          
-          :operation "(clojure.string/replace (nth ins 1) #\"meme\" \"doge\")"
-          :output {
-            "bd41f059-c450-46a5-91a6-c0923dcf01c8"
+          :id "aa9a96cf-ae73-4cbe-ad2a-1b6de890ea63"
+          :type "converter"
+          :params {
+            :from "meme"
+            :to "doge"
           }
+          :output [
+            "bd41f059-c450-46a5-91a6-c0923dcf01c8"
+          ]
         }
 
         ;; Here we write into a file
         {
           :id "bd41f059-c450-46a5-91a6-c0923dcf01c8"
           :type "writer"
-          :output {
-            :targets [
-              "file://doge.json"
-            ]
-          }
+          :output [
+            "file://doge.json"
+          ]
         }
       ]
     }
@@ -80,28 +94,18 @@ connection credentials, etc. For example:
 ```
 
 ## Rationale
-Conventional data is often moved around between different data sources. An example of which is when one migrates from one database schema to another one like, say, adding a new column. Another example would be when migrating from a legacy database to a newer one.
+Kirke is designed to do one thing, and one thing only: data.
 
-Often one would realise that migration is usually accompanied with transformation. For example, moving date data from one source to another source can often require date formatting. Or moving numberic data can often require conversion between integers and decimals.
+As a developer, there are times when I want to move data from one place to another, or to morph data from one shape to another. Have a [quick search](https://www.softwaretestinghelp.com/best-etl-tools) and you can find tons of ETL tools out there.  Though these tools tend to be quite overwhelming for development purposes like, say, writing a small migration script to move data from the old to new database.
 
-Regardless of what action is applied to the data, the entire process can be visualised as a pipeline with one end receiving input data (e.g. integers) and the other end outputting new data (e.g. decimals).
+This is where libraries like [Apache Storm](https://storm.apache.org) comes in. Armed with tons of features, they are suitable for highly performant workload. If you are looking for some ETL libraries for production purposes, I highly recommend you use these libraries.
 
-Transformation process can be much simplified with pipelines since the same pipeline can be used across multiple places like, say, two different integer columns.
+Awesome as they are, these libraries, again, are overkill for development purposes. This is where Kirke comes in. Kirke aims to provide life enhancement for developers who want to handle data during development process. Period. It is not designed for high-performant environments, nor features-packed. Instead I want a neat tool that can help me wrestle with data when I'm writing code so I don't have to write that bloody migration script in Python all the time.
 
-This transformation-as-pipelines idea is not new, with the correct technical term is **ETL - Extract, Tranform, Load**. However, treating transformation as pipelines does have its negative side. You may end up with multiple pipelines that are only "slightly" different like, say, different input data sources while the rest of the pipeline stays exactly the same.
-
-And hence why Kirke was born. Instead of treating everything as pipelines, it treats everthing as a graph. Graph allows multiple inputs and multiple outputs, with multiple transformation in between. 
-
-Compared to pipelines, graphs can offer:
-- **Multiplexing**
-- **Minimal duplication**
-- **Performance**
-
-Graphs can offer multiplexing due to its dynamic nature. One can connect any nodes with any edge within a graph, sometimes without the need to create any node or edge. Just reuse what you have.
-
-By not required to create new nodes or edges, the same node or edge can be reused multiple times, and thus reducing duplication by doing so.
-
-Graph are by nature dynamic, and thus you can have multiple parts of the same graph run at the same time. Asynchronicity whenever possible and synchronicity whenever required. This, in addition to less duplication, can offer better performance compared to pipelines.
+## Goals
+Kirke aims to achieve the following:
+- **Simplistic but extensive:** Kirke is a life enhancement, as such it aims to minimise the hatred and disgust you may feel sometimes when using it. It also makes sure that when you do want to extend the functionality, you can.
+- **Relatively fast:** Yes I did say Kirke is not designed to be performant, but surely you don't want to wait for 10 minutes each time you run it?
 
 ## Configuring Kirke
 By default, Kirke reads an EDN file called `kirke.edn` upon start-up. The file contains various things such as:
